@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from typing import List, Any
+from math import ceil
+import argparse
+from tqdm import tqdm
+import pandas as pd
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from src.inference import load_model_and_tokenizer, build_chat_text, generate_batch
+
+
+def load_data(file_path):
+
+    df = pd.read_csv(file_path)
+    df["extracted_response"] = df["response"]
+    splitting_words = ["assistant\n\n", "assistant\n", "<|CHATBOT_TOKEN|>"]
+    for splitting_word in splitting_words:
+        df["extracted_response"] = df["extracted_response"].str.split(splitting_word).str[-1]
+
+    template = "Given the following Korean sentence: '{response}'\n\nPlease respond with the honorific speech style used in the given Korean sentence. The possible choices are: Casual: 해, Polite: 해요, Deferential: 합니다/하십시오. Please don't explain, just answer with the used Korean form:"
+    df["raw_prompts"] = df.apply(
+        lambda row: (
+            template.format(response=row["extracted_response"])
+        ),
+        axis=1
+    )
+
+    return df
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Batch generation using Qwen model")
+    parser.add_argument("--model_name", type=str, default="/lustre/project/ki-topml/minbui/projects/models/Llama-3.3-70B-Instruct",
+                        help="HuggingFace model name")
+    parser.add_argument(
+        "--input_files",
+        type=str,
+        nargs="+",   # 👈 allows multiple files
+        default=["output/Qwen2.5-7B-Instruct.csv"],
+        help="File(s) containing prompts for generation"
+    )
+    parser.add_argument("--batch_size", type=int, default=1, help="Batch size for generation")
+    parser.add_argument("--max_new_tokens", type=int, default=128, help="Maximum tokens to generate per prompt")
+    parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
+    parser.add_argument("--do_sample", action="store_true", help="Whether to sample instead of greedy decoding")
+
+    args = parser.parse_args()
+
+    # Load the model and tokenizer
+    model, tokenizer = load_model_and_tokenizer(args.model_name)
+
+    for input_file in args.input_files:
+        # Load the Data
+        df = load_data(input_file)
+        prompts = df["raw_prompts"].tolist()
+
+        # Inference Time!
+        responses = generate_batch(
+            model,
+            tokenizer,
+            prompts,
+            batch_size=args.batch_size,
+            max_new_tokens=args.max_new_tokens,
+            temperature=args.temperature,
+            do_sample=args.do_sample
+        )
+
+        df["eval_response"] = responses
+        df.to_csv(input_file, index=False)
+
+
+if __name__ == "__main__":
+    main()
