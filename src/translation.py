@@ -17,7 +17,6 @@ def google_api_translation(prompts):
     translations = translator.translate(prompts, src="ko", dest="en")
     for translation in translations:
         translations.append(translation)
-        print(translation)
         time.sleep(1)  # avoid hitting rate limits
 
     return translations

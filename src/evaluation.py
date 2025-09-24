@@ -19,7 +19,7 @@ def load_data(file_path):
     for splitting_word in splitting_words:
         df["extracted_response"] = df["extracted_response"].str.split(splitting_word).str[-1]
 
-    template = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance (ignore the prefix). The possible choices are: Casual: 해, Polite: 해요, Deferential: 합니다/하십시오. Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
+    template = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance (ignore the prefix). The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
     df["raw_prompts"] = df.apply(
         lambda row: (
             template.format(response=row["extracted_response"])
