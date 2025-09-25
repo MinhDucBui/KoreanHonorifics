@@ -1,9 +1,21 @@
 import pandas as pd
 
 
-def load_data():
-    template_explicit = """Translate the following English sentence into Korean: 'I am addressing {addresse} and saying: {sentence}'\n\nProvide only the Korean translation, without any additional text or explanation."""
-    template_implicit = """Translate the following English sentence into Korean: {sentence}\n\nProvide only the Korean translation, without any additional text or explanation."""
+
+def load_data(model_name):
+    if "Hunyuan-MT-7B" in model_name:
+        template_explicit = """Translate the following segment into Korean, without additional explanation\n\n'I am addressing {addresse} and saying: {sentence}'"""
+        template_implicit = """Translate the following segment into Korean, without additional explanation\n\n'{sentence}'""" 
+    elif "Seed-X-PPO-7B" in model_name:
+        template_explicit = """Translate the following English sentence into Korean:\nI am addressing {addresse} and saying: {sentence} <ko>"""
+        template_implicit = """Translate the following English sentence into Korean:\n{sentence} <ko>""" 
+    elif "nllb" in model_name:
+        template_explicit = """I am addressing {addresse} and saying: {sentence}"""
+        template_implicit = """{sentence}""" 
+    else:
+        template_explicit = """Translate the following English sentence into Korean: 'I am addressing {addresse} and saying: {sentence}'\n\nProvide only the Korean translation, without any additional text or explanation."""
+        template_implicit = """Translate the following English sentence into Korean: {sentence}\n\nProvide only the Korean translation, without any additional text or explanation."""
+
     df = pd.read_excel("data/results.xlsx", header=None)
 
     df.columns = ["ID", "addresse", "sentence", "Ex_Ann1", "Ex_Ann2", "Ex_Ann3", "Ex_Ann4", "Ex_Ann5", "Ex_Ann6", "Ex_Ann7", "Ex_Ann8", "Im_Ann1", "Im_Ann2", "Im_Ann3", "Im_Ann4", "Im_Ann5", "Im_Ann6"]

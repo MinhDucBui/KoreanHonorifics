@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from typing import List, Any
 from math import ceil
 import argparse
@@ -13,35 +13,26 @@ from src.load_data import load_data
 SYSTEM_PROMPT = "You are a helpful assistant."
 
 
+
 def load_model_and_tokenizer(model_name: str):
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name,
         device_map="auto",          # let HF handle device placement
         torch_dtype=torch.float16,   # use FP16 for efficiency
-        trust_remote_code=True
-    )
-    tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    model.eval()
+        trust_remote_code=True)
     return model, tokenizer
 
 
-from transformers import AutoTokenizer
-
 def build_chat_text(tokenizer: AutoTokenizer, user_prompt: str) -> str:
     messages = [
+        #{"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": user_prompt},
     ]
-    try:
-        return tokenizer.apply_chat_template(
-            messages,
-            tokenize=False,
-            add_generation_prompt=True
-        )
-    except (ValueError, AttributeError):  # no template available
-        return user_prompt
-
+    return tokenizer.apply_chat_template(
+        messages,
+        tokenize=False,
+        add_generation_prompt=True
+    )
 
 
 @torch.inference_mode()
@@ -59,7 +50,7 @@ def generate_batch(
 
     outputs: List[str] = []
     device = model.device
-    chat_texts = [build_chat_text(tokenizer, p) for p in prompts]
+    chat_texts = prompts
     num_batches = ceil(len(chat_texts) / batch_size)
     for bi in tqdm(range(num_batches)):
         chunk = chat_texts[bi * batch_size: (bi + 1) * batch_size]
@@ -72,6 +63,7 @@ def generate_batch(
         ).to(device)
         gen = model.generate(
             **model_inputs,
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids("kor_Hang"),
             max_new_tokens=max_new_tokens,
             do_sample=do_sample,
             temperature=temperature,
@@ -101,13 +93,11 @@ def main():
     parser.add_argument("--do_sample", action="store_true", help="Whether to sample instead of greedy decoding")
 
     args = parser.parse_args()
+    model, tokenizer = load_model_and_tokenizer(args.model_name)
 
     # Load the Data
     df = load_data(args.model_name)
     prompts = df["raw_prompts"].tolist()
-
-    # Load the model and tokenizer
-    model, tokenizer = load_model_and_tokenizer(args.model_name)
 
     # Inference Time!
     responses = generate_batch(
