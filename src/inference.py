@@ -27,8 +27,6 @@ def load_model_and_tokenizer(model_name: str):
     return model, tokenizer
 
 
-from transformers import AutoTokenizer
-
 def build_chat_text(tokenizer: AutoTokenizer, user_prompt: str) -> str:
     messages = [
         {"role": "user", "content": user_prompt},

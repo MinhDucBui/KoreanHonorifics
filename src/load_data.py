@@ -21,6 +21,8 @@ def load_data(model_name):
     df.columns = ["ID", "addresse", "sentence", "Ex_Ann1", "Ex_Ann2", "Ex_Ann3", "Ex_Ann4", "Ex_Ann5", "Ex_Ann6", "Ex_Ann7", "Ex_Ann8", "Im_Ann1", "Im_Ann2", "Im_Ann3", "Im_Ann4", "Im_Ann5", "Im_Ann6"]
     df["addresse"] = df["addresse"].str.replace("Addressee: ", "").str.lower()
     df["sentence"] = df["sentence"].str.replace('"', "")
+    df["sentence"] = df["sentence"].str.replace('“', "")
+    df["sentence"] = df["sentence"].str.replace('”', "")
 
     # Split columns into Ex and Im groups
     ex_cols = [c for c in df.columns if c.startswith("Ex_")]
