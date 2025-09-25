@@ -51,7 +51,9 @@ def generate_batch(
     max_new_tokens: int = 256,
     temperature: float = 0.0,
     top_p: float = 1.0,
+    top_k: int = 20,
     do_sample: bool = False,
+    repetition_penalty: float = 1.05,
     **gen_kwargs: Any
 ) -> List[str]:
 
@@ -74,6 +76,8 @@ def generate_batch(
             do_sample=do_sample,
             temperature=temperature,
             top_p=top_p,
+            top_k=top_k,
+            repetition_penalty=repetition_penalty
         )
         generated_texts = tokenizer.batch_decode(
             gen,
