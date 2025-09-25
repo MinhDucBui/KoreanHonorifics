@@ -13,8 +13,8 @@ def load_data(model_name):
         template_explicit = """I am addressing {addresse} and saying: {sentence}"""
         template_implicit = """{sentence}""" 
     else:
-        template_explicit = """Translate the following English sentence into Korean: 'I am addressing {addresse} and saying: {sentence}'\n\nProvide only the Korean translation, without any additional text or explanation."""
-        template_implicit = """Translate the following English sentence into Korean: {sentence}\n\nProvide only the Korean translation, without any additional text or explanation."""
+        template_explicit = """Translate the following English segment into Korean: 'I am addressing {addresse} and saying: {sentence}'\n\nProvide only the Korean translation, without any additional text or explanation."""
+        template_implicit = """Translate the following English segment into Korean: {sentence}\n\nProvide only the Korean translation, without any additional text or explanation."""
 
     df = pd.read_excel("data/results.xlsx", header=None)
 
