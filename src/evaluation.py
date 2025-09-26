@@ -10,20 +10,15 @@ import sys, os
 import re
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from src.inference import load_model_and_tokenizer, build_chat_text, generate_batch
+from src.load_data import split_response
 
 
 def load_data(file_path):
 
     df = pd.read_csv(file_path)
-    df["extracted_response"] = df["response"]
-
-    # Combine all splitting words into one regex pattern
-    splitting_words = ["assistant\\n\\n", "assistant\\n", "<\\|CHATBOT_TOKEN\\|>", r"\n\n.*'", " <ko> "]
-    pattern = "|".join(splitting_words)
 
     # Use regex split on the column
-    df["extracted_response"] = df["extracted_response"].str.split(pattern).str[-1].str.strip()
-    print(df["extracted_response"])
+    df = split_response(df, file_path)
 
     template_implicit = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance. The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
     template_explicit = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance (ignore the prefix). The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."

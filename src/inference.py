@@ -94,6 +94,10 @@ def main():
                         help="HuggingFace model name")
     parser.add_argument("--output_folder", type=str, default="output/",
                         help="File containing prompts for generation")
+    parser.add_argument("--mode", type=str, default="",
+                        help="File containing prompts for generation")
+    parser.add_argument("--file_path", type=str, default="",
+                        help="File containing prompts for generation")
     parser.add_argument("--batch_size", type=int, default=1, help="Batch size for generation")
     parser.add_argument("--max_new_tokens", type=int, default=128, help="Maximum tokens to generate per prompt")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature")
@@ -105,8 +109,8 @@ def main():
     args = parser.parse_args()
 
     # Load the Data
-    df = load_data(args.model_name)
-    prompts = df["raw_prompts"].tolist()
+    df = load_data(args.model_name, args.mode, args.file_path)
+    prompts = df[f"raw_prompts{('_' + args.mode) if args.mode else ''}"].tolist()
 
     # Load the model and tokenizer
     model, tokenizer = load_model_and_tokenizer(args.model_name)
@@ -125,8 +129,11 @@ def main():
         do_sample=args.do_sample
     )
 
-    df["response"] = responses
-    df.to_csv(f"{args.output_folder}/{args.model_name.split('/')[-1]}.csv", index=False)
+    df[f"response{('_' + args.mode) if args.mode else ''}"] = responses
+    if args.file_path != "":
+        df.to_csv(args.file_path, index=False)
+    else:
+        df.to_csv(f"{args.output_folder}/{args.model_name.split('/')[-1]}.csv", index=False)
 
 
 if __name__ == "__main__":

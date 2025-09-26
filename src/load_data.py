@@ -1,20 +1,61 @@
 import pandas as pd
 
 
+def create_source_sentence(df):
 
-def load_data(model_name):
-    if "Hunyuan-MT-7B" in model_name:
-        template_explicit = """Translate the following segment into Korean, without additional explanation\n\n'I am addressing {addresse} and saying: {sentence}'"""
-        template_implicit = """Translate the following segment into Korean, without additional explanation\n\n'{sentence}'""" 
-    elif "Seed-X-PPO-7B" in model_name:
-        template_explicit = """Translate the following English sentence into Korean:\nI am addressing {addresse} and saying: {sentence} <ko>"""
-        template_implicit = """Translate the following English sentence into Korean:\n{sentence} <ko>""" 
-    elif "nllb" in model_name:
-        template_explicit = """I am addressing {addresse} and saying: {sentence}"""
-        template_implicit = """{sentence}""" 
+    source_implicit = "{sentence}"
+    source_explicit = "I am addressing {addresse} and saying: {sentence}"
+
+    df["source_sentence"] = df.apply(
+        lambda row: (
+            source_explicit.format(sentence=row["sentence"], addresse=row["addresse"])
+            if row["type"] == "Ex"
+            else source_implicit.format(sentence=row["sentence"])
+        ),
+        axis=1
+    )
+
+    return df
+
+
+def split_response(df, file_path):
+
+    if "Hunyuan-MT-7B" in file_path:
+        splitting_words = [r"\n\n.*'"]
     else:
-        template_explicit = """Translate the following English segment into Korean: 'I am addressing {addresse} and saying: {sentence}'\n\nProvide only the Korean translation, without any additional text or explanation."""
-        template_implicit = """Translate the following English segment into Korean: '{sentence}'\n\nProvide only the Korean translation, without any additional text or explanation."""
+        splitting_words = ["assistant\\n\\n", "assistant\\n", "<\\|CHATBOT_TOKEN\\|>", " <ko> "]
+
+    pattern = "|".join(splitting_words)
+    df["extracted_response"] = df["response"].str.split(pattern).str[-1].str.strip()
+
+    return df
+
+
+def get_template(model_name, src_lang="English", tgt_lang="Korean"):
+    if "Hunyuan-MT-7B" in model_name:
+        template = f"""Translate the following {src_lang} segment into {tgt_lang}, without additional explanation\n\n'{{source_sentence}}'"""
+    elif "Seed-X-PPO-7B" in model_name:
+        if tgt_lang == "Korean":
+            tag = "<ko>"
+        elif tgt_lang == "English":
+            tag = "<en>"
+        template = f"""Translate the following {src_lang} sentence into {tgt_lang}:\n{{source_sentence}} {tag}"""
+    elif "nllb" in model_name:
+        template = """{source_sentence}"""
+    else:
+        template = f"""Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""
+
+    return template
+
+def load_data(model_name, mode="", file_path=""):
+
+    if mode == "":
+        return load_trans_data(model_name)
+    elif mode == "backtrans":
+        return load_backtrans_data(model_name, file_path, mode)
+
+
+def process_results_file():
 
     df = pd.read_excel("data/results.xlsx", header=None)
 
@@ -41,14 +82,33 @@ def load_data(model_name):
     final_cols = ["ID", "addresse", "sentence", "type"] + list(set([c.replace("Ex_", "").replace("Im_", "") for c in ex_cols+im_cols]))
     df_final = pd.concat([df_ex, df_im], ignore_index=True)[final_cols]
 
+    df_final = create_source_sentence(df_final)
+    return df_final
+
+def load_trans_data(model_name):
+    template = get_template(model_name)
+
+    df_final = process_results_file()
 
     df_final["raw_prompts"] = df_final.apply(
         lambda row: (
-            template_explicit.format(sentence=row["sentence"], addresse=row["addresse"])
-            if row["type"] == "Ex"
-            else template_implicit.format(sentence=row["sentence"])
+            template.format(source_sentence=row["source_sentence"])
+        ),
+        axis=1
+    )
+    return df_final
+
+def load_backtrans_data(model_name, file_path, mode):
+    template = get_template(model_name, src_lang="Korean", tgt_lang="English")
+    df = pd.read_csv(file_path)
+
+    df = split_response(df, file_path)
+
+    df[f"raw_prompts{('_' + mode) if mode else ''}"] = df.apply(
+        lambda row: (
+            template.format(source_sentence=row["extracted_response"])
         ),
         axis=1
     )
 
-    return df_final
+    return df
