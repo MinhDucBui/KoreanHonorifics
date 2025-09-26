@@ -4,7 +4,7 @@ import pandas as pd
 def create_source_sentence(df):
 
     source_implicit = "{sentence}"
-    source_explicit = "I am addressing {addresse} and saying: {sentence}"
+    source_explicit = "I was talking to {addresse}, and I said: {sentence}"
 
     df["source_sentence"] = df.apply(
         lambda row: (
@@ -16,6 +16,54 @@ def create_source_sentence(df):
     )
 
     return df
+
+
+def reformat_addresse_sentence(df):
+
+    # Sentences
+    df["sentence"] = df["sentence"].str.replace('"', "")
+    df["sentence"] = df["sentence"].str.replace('“', "")
+    df["sentence"] = df["sentence"].str.replace('”', "")
+
+    # Addresse
+    mapping = {
+        "Addressee: One’s Professor, at university": "my professor at university",
+        "Addressee: A Stranger, on the street": "a stranger on the street",
+        "Addressee: A Clerk, in a store": "a clerk in a store",
+        "Addressee: One’s Boss, at work": "my boss at work",
+        "Addressee: One’s In Laws, the first meeting": "my in-laws at our first meeting",
+        "Addressee: A Police Officer, on the street": "a police officer on the street",
+        "Addressee: A Government Official, at a government institution": "a government official at a government institution",
+        "Addressee: A group of students, giving a presentation in front of class": "a group of students while giving a presentation in front of class",
+        "Addressee: A Job Interviewer, during a job interview": "a job interviewer during a job interview",
+        "Addressee: A Customer, at one’s company": "a customer at my company",
+        "Addressee: A Waiter, in a restaurant": "a waiter in a restaurant",
+        "Addressee: One’s Teacher, at school": "my teacher at school",
+        "Addressee: A Classmate, in school – unknown age": "a classmate at school",
+        "Addressee: A Taxi Driver, in a cab": "a taxi driver in a cab",
+        "Addressee: A nurse, in a clinic": "a nurse in a clinic",
+        "Addressee: One’s Mother, at home": "my mother at home",
+        "Addressee: One’s In Laws, already acquainted": "my in-laws I am already acquainted with",
+        "Addressee: A Church Member, at church": "a church member at church",
+        "Addressee: A Co-Worker, at work – lower rank": "a lower-ranking co-worker at work",
+        "Addressee: An Online forum, a blog post": "an online forum in a blog post",
+        "Addressee: One’s Younger Sibling, at home": "my younger sibling at home",
+        "Addressee: A Younger Cousin, holidays with the family": "my younger cousin during the holidays with the family",
+        "Addressee: One’s Best Friend, outside": "my best friend outside",
+        "Addressee: One’s Roommate, at home": "my roommate at home",
+        "Addressee: A Classmate, outside – well acquainted": "a well-acquainted classmate outside",
+        "Addressee: One’s Romantic Partner, at home": "my romantic partner at home",
+        "Addressee: A Strange Child, younger child - outside": "a strange younger child outside",
+        "Addressee: One's Pet, at home": "my pet at home",
+        "Addressee: Chatting with Chat-GPT, at home": "ChatGPT at home",
+        "Addressee: Talking with oneself, on the street": "myself on the street",
+    }
+
+    df["addresse"] = df["addresse"].map(mapping)
+
+    return df
+
+
 
 
 def split_response(df, file_path):
@@ -60,10 +108,8 @@ def process_results_file():
     df = pd.read_excel("data/results.xlsx", header=None)
 
     df.columns = ["ID", "addresse", "sentence", "Ex_Ann1", "Ex_Ann2", "Ex_Ann3", "Ex_Ann4", "Ex_Ann5", "Ex_Ann6", "Ex_Ann7", "Ex_Ann8", "Im_Ann1", "Im_Ann2", "Im_Ann3", "Im_Ann4", "Im_Ann5", "Im_Ann6"]
-    df["addresse"] = df["addresse"].str.replace("Addressee: ", "").str.lower()
-    df["sentence"] = df["sentence"].str.replace('"', "")
-    df["sentence"] = df["sentence"].str.replace('“', "")
-    df["sentence"] = df["sentence"].str.replace('”', "")
+
+    df = reformat_addresse_sentence(df)
 
     # Split columns into Ex and Im groups
     ex_cols = [c for c in df.columns if c.startswith("Ex_")]

@@ -35,48 +35,6 @@ def build_chat_text(tokenizer: AutoTokenizer, user_prompt: str) -> str:
     )
 
 
-@torch.inference_mode()
-def generate_batch(
-    model,
-    tokenizer,
-    prompts: List[str],
-    batch_size: int = 8,
-    max_new_tokens: int = 256,
-    temperature: float = 0.0,
-    top_p: float = 1.0,
-    do_sample: bool = False,
-    **gen_kwargs: Any
-) -> List[str]:
-
-    outputs: List[str] = []
-    device = model.device
-    chat_texts = prompts
-    num_batches = ceil(len(chat_texts) / batch_size)
-    for bi in tqdm(range(num_batches)):
-        chunk = chat_texts[bi * batch_size: (bi + 1) * batch_size]
-        model_inputs = tokenizer(
-            chunk,
-            return_tensors="pt",
-            padding=True,
-            truncation=False,
-            return_token_type_ids=False
-        ).to(device)
-        gen = model.generate(
-            **model_inputs,
-            forced_bos_token_id=tokenizer.convert_tokens_to_ids("kor_Hang"),
-            max_new_tokens=max_new_tokens,
-            do_sample=do_sample,
-            temperature=temperature,
-            top_p=top_p,
-        )
-        generated_texts = tokenizer.batch_decode(
-            gen,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=True
-        )
-        outputs += generated_texts
-    return outputs
-
 
 def main():
     parser = argparse.ArgumentParser(description="Batch generation using Qwen model")
