@@ -9,6 +9,7 @@ import pandas as pd
 from openai import OpenAI
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from googletrans import Translator
+import asyncio
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from src.load_data import load_data
@@ -52,6 +53,7 @@ def generate_batch_nllb(
     model,
     tokenizer,
     prompts: List[str],
+    trg: str = "kor_Hang",
     batch_size: int = 8,
     max_new_tokens: int = 256,
     temperature: float = 0.0,
@@ -75,7 +77,7 @@ def generate_batch_nllb(
         ).to(device)
         gen = model.generate(
             **model_inputs,
-            forced_bos_token_id=tokenizer.convert_tokens_to_ids("kor_Hang"),
+            forced_bos_token_id=tokenizer.convert_tokens_to_ids(trg),
             max_new_tokens=max_new_tokens,
             do_sample=do_sample,
             temperature=temperature,
@@ -201,6 +203,8 @@ def inference_api(prompts, args):
     responses = generate_batch_api(
         args.model_name,
         prompts,
+        src=src,
+        trg=trg,
         batch_size=args.batch_size,
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
@@ -212,17 +216,23 @@ def inference_api(prompts, args):
     return responses
 
 def inference_nllb(prompts, args):
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     model = AutoModelForSeq2SeqLM.from_pretrained(
-        model_name,
+        args.model_name,
         device_map="auto",          # let HF handle device placement
         torch_dtype=torch.float16,   # use FP16 for efficiency
         trust_remote_code=True)
 
-    responses = generate_batch(
+    if "backtrans" in args.mode:
+        trg="eng_Latn"
+    else:
+        trg="kor_Hang"
+
+    responses = generate_batch_nllb(
         model,
         tokenizer,
         prompts,
+        trg=trg,
         batch_size=args.batch_size,
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
@@ -235,12 +245,19 @@ def inference_nllb(prompts, args):
 
 
 def inference_google_translation(prompts, args):
+    if "backtrans" in args.mode:
+        src = "ko"
+        trg = "en"
+    else:
+        src = "en"
+        trg = "ko"
     translations = []
-    translator = Translator()
-    translations = translator.translate(prompts, src="ko", dest="en")
-    for translation in translations:
-        translations.append(translation)
-        time.sleep(1)  # avoid hitting rate limits
+    async def TranslateText():
+        async with Translator() as translator:
+            results = await translator.translate(prompts, src=src, dest=trg)
+            for translation in results:
+                translations.append(translation.text)
+    asyncio.run(TranslateText())
     return translations
 
 
