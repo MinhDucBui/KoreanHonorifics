@@ -51,7 +51,7 @@ def generate_batch(
     **gen_kwargs: Any
 ) -> List[str]:
 
-    client = OpenAI(base_url="https://ki-chat.uni-mainz.de/api/", api_key="sk-c8ee5a5aecf64650b1c484452e8f266a")
+    client = OpenAI(base_url="https://ki-chat.uni-mainz.de/api/", api_key="sk-77a6b5f9b64b4a35acebf2c3dfdd58d0")
     model_name = model.replace("_", " ")
 
     batch_size = 1

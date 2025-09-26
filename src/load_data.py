@@ -40,7 +40,7 @@ def get_template(model_name, src_lang="English", tgt_lang="Korean"):
         elif tgt_lang == "English":
             tag = "<en>"
         template = f"""Translate the following {src_lang} sentence into {tgt_lang}:\n{{source_sentence}} {tag}"""
-    elif "nllb" in model_name:
+    elif "nllb" in model_name or "google" in model_name:
         template = """{source_sentence}"""
     else:
         template = f"""Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""

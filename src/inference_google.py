@@ -35,21 +35,17 @@ def main():
     args = parser.parse_args()
 
     # Load the Data
-    df = load_data()
-    df["raw_prompts"] = (
-        df["raw_prompts"]
-        .str.split("Translate the following English sentence into Korean: ")
-        .str[-1]
-        .str.split("\n\nProvide only")
-        .str[0]
-    )
-    prompts = df["raw_prompts"].tolist()
+    df = load_data(args.model_name, args.mode, args.file_path)
+    prompts = df[f"raw_prompts{('_' + args.mode) if args.mode else ''}"].tolist()
 
     # Inference
     responses = google_api_translation(prompts)
 
-    df["response"] = responses
-    df.to_csv(f"{args.output_folder}/google_translation.csv", index=False)
+    df[f"response{('_' + args.mode) if args.mode else ''}"] = responses
+    if args.file_path != "":
+        df.to_csv(args.file_path, index=False)
+    else:
+        df.to_csv(f"{args.output_folder}/{args.model_name.split('/')[-1]}.csv", index=False)
 
 
 if __name__ == "__main__":
