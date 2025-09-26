@@ -23,7 +23,7 @@ def load_data(file_path):
     template_implicit = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance. The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
     template_explicit = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance (ignore the prefix). The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
 
-    df["raw_prompts"] = df.apply(
+    df["raw_prompts_eval"] = df.apply(
         lambda row: (
             template_explicit.format(response=row["extracted_response"])
             if row["type"] == "Ex"
@@ -59,7 +59,7 @@ def main():
     for input_file in args.input_files:
         # Load the Data
         df = load_data(input_file)
-        prompts = df["raw_prompts"].tolist()
+        prompts = df["raw_prompts_eval"].tolist()
 
         # Inference Time!
         responses = generate_batch(
@@ -72,7 +72,7 @@ def main():
             do_sample=args.do_sample
         )
 
-        df["eval_response"] = responses
+        df["eval_response_eval"] = responses
         df.to_csv(input_file, index=False)
 
 
