@@ -203,8 +203,6 @@ def inference_api(prompts, args):
     responses = generate_batch_api(
         args.model_name,
         prompts,
-        src=src,
-        trg=trg,
         batch_size=args.batch_size,
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
