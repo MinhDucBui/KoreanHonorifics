@@ -25,14 +25,14 @@ def load_model_and_tokenizer(model_name: str):
         torch_dtype=torch.float16,   # use FP16 for efficiency
         trust_remote_code=True
     )
-    tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
+    tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left", trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
     model.eval()
     return model, tokenizer
 
 
-def build_chat_text(tokenizer: AutoTokenizer, user_prompt: str) -> str:
+def build_chat_text(tokenizer: AutoTokenizer, user_prompt: str, thinking: bool = False) -> str:
     messages = [
         {"role": "user", "content": user_prompt},
     ]
@@ -40,7 +40,8 @@ def build_chat_text(tokenizer: AutoTokenizer, user_prompt: str) -> str:
         return tokenizer.apply_chat_template(
             messages,
             tokenize=False,
-            add_generation_prompt=True
+            add_generation_prompt=True,
+            enable_thinking=False
         )
     except (ValueError, AttributeError):  # no template available
         return user_prompt
@@ -122,7 +123,7 @@ def generate_batch_api(
             messages=chunk[0],
 
             # Generation controls
-            max_tokens=max_new_tokens,             # Maximum tokens to generate
+            max_tokens=1024,             # Maximum tokens to generate
             temperature=temperature,             # Randomness (0 = deterministic)
             top_p=top_p,                   # Nucleus sampling (alternative to temperature)
             #presence_penalty=0.0,        # Penalize new tokens if they appear already
@@ -146,12 +147,17 @@ def generate_batch(
     top_k: int = 20,
     do_sample: bool = False,
     repetition_penalty: float = 1.05,
+    no_template: bool = False,
     **gen_kwargs: Any
 ) -> List[str]:
 
     outputs: List[str] = []
     device = model.device
-    chat_texts = [build_chat_text(tokenizer, p) for p in prompts]
+    if no_template:
+        chat_texts = [p for p in prompts]
+    else:
+        chat_texts = [build_chat_text(tokenizer, p) for p in prompts]
+
     num_batches = ceil(len(chat_texts) / batch_size)
     for bi in tqdm(range(num_batches)):
         chunk = chat_texts[bi * batch_size: (bi + 1) * batch_size]
@@ -171,12 +177,26 @@ def generate_batch(
             top_k=top_k,
             repetition_penalty=repetition_penalty
         )
-        generated_texts = tokenizer.batch_decode(
-            gen,
-            skip_special_tokens=True,
-            clean_up_tokenization_spaces=True
-        )
-        outputs += generated_texts
+        for g, inp in zip(gen, model_inputs["input_ids"]):
+            # decode full input prompt
+            prompt_text = tokenizer.decode(
+                inp,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=True
+            )
+
+            # decode full generated sequence
+            text = tokenizer.decode(
+                g,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=True
+            )
+
+            # keep only continuation
+            continuation = text[len(prompt_text):].strip()
+            outputs.append(continuation)
+
+
     return outputs
 
 def inference_general_llms(prompts, args):
@@ -194,7 +214,8 @@ def inference_general_llms(prompts, args):
         top_k=args.top_k,
         top_p=args.top_p,
         repetition_penalty=args.repetition_penalty,
-        do_sample=args.do_sample
+        do_sample=args.do_sample,
+        no_template=args.no_template
     )
     return responses
 
@@ -242,6 +263,25 @@ def inference_nllb(prompts, args):
     return responses
 
 
+def inference_gemmax2(prompts, args):
+    model, tokenizer = load_model_and_tokenizer(args.model_name)
+
+    responses = generate_batch(
+        model,
+        tokenizer,
+        prompts,
+        batch_size=args.batch_size,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+        top_k=args.top_k,
+        top_p=args.top_p,
+        repetition_penalty=args.repetition_penalty,
+        do_sample=args.do_sample,
+        no_template=True,
+    )
+    return responses
+
+
 def inference_google_translation(prompts, args):
     if "backtrans" in args.mode:
         src = "ko"
@@ -276,6 +316,7 @@ def main():
     parser.add_argument("--top_p", type=float, default=0.6, help="Sampling temperature")
     parser.add_argument("--repetition_penalty", type=float, default=1.05, help="Sampling temperature")
     parser.add_argument("--do_sample", action="store_true", help="Whether to sample instead of greedy decoding")
+    parser.add_argument("--no_template", action="store_true", help="")
 
     args = parser.parse_args()
 
@@ -290,6 +331,8 @@ def main():
         responses = inference_google_translation(prompts, args)
     elif args.model_name in ["GPT_OSS_120B", "Gemma3_27B", "Qwen3_235B"]:
         responses = inference_api(prompts, args)
+    elif "gemmax2" in args.model_name.lower():
+        responses = inference_gemmax2(prompts, args)
     else:
         responses = inference_general_llms(prompts, args)
 

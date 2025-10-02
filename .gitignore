@@ -1,4 +1,5 @@
-src/inference_api.py
+src/api_keys.py
+src/eval_translation_qe.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

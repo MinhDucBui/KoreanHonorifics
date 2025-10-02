@@ -3,8 +3,8 @@ import pandas as pd
 
 def create_source_sentence(df):
 
-    source_implicit = "{sentence}"
-    source_explicit = "I was talking to {addresse}, and I said: {sentence}"
+    source_implicit = """'{sentence}'"""
+    source_explicit = """'I was talking to {addresse}, and I said: "{sentence}"'"""
 
     df["source_sentence"] = df.apply(
         lambda row: (
@@ -68,20 +68,22 @@ def reformat_addresse_sentence(df):
 
 def split_response(df, file_path):
 
-    if "Hunyuan-MT-7B" in file_path:
-        splitting_words = [r"\n\n.*'"]
-    else:
-        splitting_words = ["assistant\\n\\n", "assistant\\n", "<\\|CHATBOT_TOKEN\\|>", " <ko> "]
+    #if "Hunyuan-MT-7B" in file_path:
+    #    splitting_words = [r"\n\n.*'"]
+    #else:
+    splitting_words = ["assistant\\n\\n", "assistant\\n", "<\\|CHATBOT_TOKEN\\|>", " <ko> ", "\nKorean:", "model\n", "<answer>\n"]
 
     pattern = "|".join(splitting_words)
     df["extracted_response"] = df["response"].str.split(pattern).str[-1].str.strip()
-
+    df["extracted_response"] = df["extracted_response"].str.replace("</answer>", "").str.strip()
     return df
 
 
 def get_template(model_name, src_lang="English", tgt_lang="Korean"):
     if "Hunyuan-MT-7B" in model_name:
         template = f"""Translate the following {src_lang} segment into {tgt_lang}, without additional explanation\n\n'{{source_sentence}}'"""
+    elif "Hunyuan-7B-Instruct" in model_name:
+        template = f"""/no_think Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""
     elif "Seed-X-PPO-7B" in model_name:
         if tgt_lang == "Korean":
             tag = "<ko>"
@@ -90,9 +92,21 @@ def get_template(model_name, src_lang="English", tgt_lang="Korean"):
         template = f"""Translate the following {src_lang} sentence into {tgt_lang}:\n{{source_sentence}} {tag}"""
     elif "nllb" in model_name or "google" in model_name:
         template = """{source_sentence}"""
+    elif "Tower" in model_name:
+        template = f"""Translate the following {src_lang} source text to {tgt_lang}:\n{src_lang}: {{source_sentence}}\n{tgt_lang}: """
+    elif "gemmax2" in model_name.lower():
+        template = f"Translate this from {src_lang} to {tgt_lang}:\n{src_lang}: {{source_sentence}}\n{tgt_lang}:"
+    elif "LLaMAX3-8B-Alpaca" in model_name:
+        instruction = f'Translate the following sentences from {src_lang} to {tgt_lang}.'
+        template = (
+            'Below is an instruction that describes a task, paired with an input that provides further context. '
+            'Write a response that appropriately completes the request.\n'
+            f'### Instruction:\n{instruction}\n'
+            f'### Input:\n{{source_sentence}}\n### Response:'
+        )
     else:
-        template = f"""Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""
-
+        # template = f"""Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""
+        template = f"""Translate the following {src_lang} source segment into {tgt_lang}. Return only the translation, without any additional explanations or commentary.\n{src_lang}: {{source_sentence}}\n{tgt_lang}:"""
     return template
 
 def load_data(model_name, mode="", file_path=""):
@@ -105,9 +119,9 @@ def load_data(model_name, mode="", file_path=""):
 
 def process_results_file():
 
-    df = pd.read_excel("data/results.xlsx", header=None)
+    df = pd.read_csv("data/processed.csv", header=None)
 
-    df.columns = ["ID", "addresse", "sentence", "Ex_Ann1", "Ex_Ann2", "Ex_Ann3", "Ex_Ann4", "Ex_Ann5", "Ex_Ann6", "Ex_Ann7", "Ex_Ann8", "Im_Ann1", "Im_Ann2", "Im_Ann3", "Im_Ann4", "Im_Ann5", "Im_Ann6"]
+    df.columns = ["ID", "addresse", "sentence", "Ex_Ann1", "Ex_Ann2", "Ex_Ann3", "Ex_Ann4", "Ex_Ann5", "Ex_Ann6", "Ex_Ann7", "Ex_Ann8", "Im_Ann1", "Im_Ann2", "Im_Ann3", "Im_Ann4", "Im_Ann5"]
 
     df = reformat_addresse_sentence(df)
 
