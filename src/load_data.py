@@ -3,8 +3,8 @@ import pandas as pd
 
 def create_source_sentence(df):
 
-    source_implicit = """'{sentence}'"""
-    source_explicit = """'I was talking to {addresse}, and I said: "{sentence}"'"""
+    source_implicit = '{sentence}'
+    source_explicit = 'I was talking to {addresse}, and I said: {sentence}'
 
     df["source_sentence"] = df.apply(
         lambda row: (
@@ -27,32 +27,32 @@ def reformat_addresse_sentence(df):
 
     # Addresse
     mapping = {
-        "Addressee: One’s Professor, at university": "my professor at university",
+        "Addressee: One's Professor, at university": "my professor at university",
         "Addressee: A Stranger, on the street": "a stranger on the street",
         "Addressee: A Clerk, in a store": "a clerk in a store",
-        "Addressee: One’s Boss, at work": "my boss at work",
-        "Addressee: One’s In Laws, the first meeting": "my in-laws at our first meeting",
+        "Addressee: One's Boss, at work": "my boss at work",
+        "Addressee: One's In Laws, the first meeting": "my in-laws at our first meeting",
         "Addressee: A Police Officer, on the street": "a police officer on the street",
         "Addressee: A Government Official, at a government institution": "a government official at a government institution",
         "Addressee: A group of students, giving a presentation in front of class": "a group of students while giving a presentation in front of class",
         "Addressee: A Job Interviewer, during a job interview": "a job interviewer during a job interview",
-        "Addressee: A Customer, at one’s company": "a customer at my company",
+        "Addressee: A Customer, at one's company": "a customer at my company",
         "Addressee: A Waiter, in a restaurant": "a waiter in a restaurant",
-        "Addressee: One’s Teacher, at school": "my teacher at school",
+        "Addressee: One's Teacher, at school": "my teacher at school",
         "Addressee: A Classmate, in school – unknown age": "a classmate at school",
         "Addressee: A Taxi Driver, in a cab": "a taxi driver in a cab",
         "Addressee: A nurse, in a clinic": "a nurse in a clinic",
-        "Addressee: One’s Mother, at home": "my mother at home",
-        "Addressee: One’s In Laws, already acquainted": "my in-laws I am already acquainted with",
+        "Addressee: One's Mother, at home": "my mother at home",
+        "Addressee: One's In Laws, already acquainted": "my in-laws I am already acquainted with",
         "Addressee: A Church Member, at church": "a church member at church",
         "Addressee: A Co-Worker, at work – lower rank": "a lower-ranking co-worker at work",
         "Addressee: An Online forum, a blog post": "an online forum in a blog post",
-        "Addressee: One’s Younger Sibling, at home": "my younger sibling at home",
+        "Addressee: One's Younger Sibling, at home": "my younger sibling at home",
         "Addressee: A Younger Cousin, holidays with the family": "my younger cousin during the holidays with the family",
-        "Addressee: One’s Best Friend, outside": "my best friend outside",
-        "Addressee: One’s Roommate, at home": "my roommate at home",
+        "Addressee: One's Best Friend, outside": "my best friend outside",
+        "Addressee: One's Roommate, at home": "my roommate at home",
         "Addressee: A Classmate, outside – well acquainted": "a well-acquainted classmate outside",
-        "Addressee: One’s Romantic Partner, at home": "my romantic partner at home",
+        "Addressee: One's Romantic Partner, at home": "my romantic partner at home",
         "Addressee: A Strange Child, younger child - outside": "a strange younger child outside",
         "Addressee: One's Pet, at home": "my pet at home",
         "Addressee: Chatting with Chat-GPT, at home": "ChatGPT at home",
@@ -81,9 +81,7 @@ def split_response(df, file_path):
 
 def get_template(model_name, src_lang="English", tgt_lang="Korean"):
     if "Hunyuan-MT-7B" in model_name:
-        template = f"""Translate the following {src_lang} segment into {tgt_lang}, without additional explanation\n\n'{{source_sentence}}'"""
-    elif "Hunyuan-7B-Instruct" in model_name:
-        template = f"""/no_think Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""
+        template = f"""Translate the following {src_lang} segment into {tgt_lang}, without additional explanation\n\n{{source_sentence}}"""
     elif "Seed-X-PPO-7B" in model_name:
         if tgt_lang == "Korean":
             tag = "<ko>"
@@ -105,8 +103,11 @@ def get_template(model_name, src_lang="English", tgt_lang="Korean"):
             f'### Input:\n{{source_sentence}}\n### Response:'
         )
     else:
-        # template = f"""Translate the following {src_lang} segment into {tgt_lang}: '{{source_sentence}}'\n\nProvide only the {tgt_lang} translation, without any additional text or explanation."""
-        template = f"""Translate the following {src_lang} source segment into {tgt_lang}. Return only the translation, without any additional explanations or commentary.\n{src_lang}: {{source_sentence}}\n{tgt_lang}:"""
+        template = f"""Translate the following {src_lang} source segment into {tgt_lang}. Return only the translation, without any additional explanations or commentary.\n{src_lang}: '{{source_sentence}}'\n{tgt_lang}:"""
+
+        if "Hunyuan-7B-Instruct" in model_name:
+            template = "/no_think" + template
+
     return template
 
 def load_data(model_name, mode="", file_path=""):
@@ -143,6 +144,9 @@ def process_results_file():
     df_final = pd.concat([df_ex, df_im], ignore_index=True)[final_cols]
 
     df_final = create_source_sentence(df_final)
+
+    # Take smaller set
+    df_final = df_final.groupby(["addresse", "type"], group_keys=False).head(25)
     return df_final
 
 def load_trans_data(model_name):

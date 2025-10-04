@@ -19,12 +19,20 @@ SYSTEM_PROMPT = "You are a helpful assistant."
 
 
 def load_model_and_tokenizer(model_name: str):
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        device_map="auto",          # let HF handle device placement
-        torch_dtype=torch.float16,   # use FP16 for efficiency
-        trust_remote_code=True
-    )
+    if "gpt-oss-120b" in model_name:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map="auto",          # let HF handle device placement
+            #torch_dtype=torch.float16,   # use FP16 for efficiency
+            trust_remote_code=True
+        )
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            device_map="auto",          # let HF handle device placement
+            torch_dtype=torch.float16,   # use FP16 for efficiency
+            trust_remote_code=True
+        )
     tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left", trust_remote_code=True)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -123,7 +131,7 @@ def generate_batch_api(
             messages=chunk[0],
 
             # Generation controls
-            max_tokens=1024,             # Maximum tokens to generate
+            max_tokens=512,             # Maximum tokens to generate
             temperature=temperature,             # Randomness (0 = deterministic)
             top_p=top_p,                   # Nucleus sampling (alternative to temperature)
             #presence_penalty=0.0,        # Penalize new tokens if they appear already
@@ -263,7 +271,7 @@ def inference_nllb(prompts, args):
     return responses
 
 
-def inference_gemmax2(prompts, args):
+def inference_notemplate(prompts, args):
     model, tokenizer = load_model_and_tokenizer(args.model_name)
 
     responses = generate_batch(
@@ -332,7 +340,7 @@ def main():
     elif args.model_name in ["GPT_OSS_120B", "Gemma3_27B", "Qwen3_235B"]:
         responses = inference_api(prompts, args)
     elif "gemmax2" in args.model_name.lower():
-        responses = inference_gemmax2(prompts, args)
+        responses = inference_notemplate(prompts, args)
     else:
         responses = inference_general_llms(prompts, args)
 
