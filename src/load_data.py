@@ -88,7 +88,7 @@ def get_template(model_name, src_lang="English", tgt_lang="Korean"):
         elif tgt_lang == "English":
             tag = "<en>"
         template = f"""Translate the following {src_lang} sentence into {tgt_lang}:\n{{source_sentence}} {tag}"""
-    elif "nllb" in model_name or "google" in model_name:
+    elif "nllb" in model_name or "google" in model_name or "opus" in model_name:
         template = """{source_sentence}"""
     elif "Tower" in model_name:
         template = f"""Translate the following {src_lang} source text to {tgt_lang}:\n{src_lang}: {{source_sentence}}\n{tgt_lang}: """

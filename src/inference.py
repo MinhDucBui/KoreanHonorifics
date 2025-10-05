@@ -14,10 +14,11 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from src.load_data import load_data
 from src.api_keys import API_KEY
+from transformers import MarianMTModel, MarianTokenizer
 
 SYSTEM_PROMPT = "You are a helpful assistant."
 
-
+#os.environ["CUDA_VISIBLE_DEVICES"]="0"
 def load_model_and_tokenizer(model_name: str):
     if "gpt-oss-120b" in model_name:
         model = AutoModelForCausalLM.from_pretrained(
@@ -241,6 +242,32 @@ def inference_api(prompts, args):
         do_sample=args.do_sample
     )
     return responses
+
+
+def inference_opus(prompts, args):
+    tokenizer = MarianTokenizer.from_pretrained(args.model_name)
+    model = MarianMTModel.from_pretrained(
+        args.model_name,                          
+        device_map="auto",          # let HF handle device placement
+        torch_dtype=torch.float16,   # use FP16 for efficiency
+        trust_remote_code=True)
+
+    responses = generate_batch(
+        model,
+        tokenizer,
+        prompts,
+        batch_size=args.batch_size,
+        max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
+        top_k=args.top_k,
+        top_p=args.top_p,
+        repetition_penalty=args.repetition_penalty,
+        do_sample=args.do_sample,
+        no_template=args.no_template
+    )
+    return responses
+
+
 
 def inference_nllb(prompts, args):
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)

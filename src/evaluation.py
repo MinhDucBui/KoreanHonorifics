@@ -23,6 +23,10 @@ def load_data(file_path):
     template_implicit = "Given the following Korean segment: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance by ONLY looking at the verb endings. The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오) or Others (If nothing fits). Be very short and give your final answer at the end in the format 'Honorific: <Casual/Polite/Deferential/Others>'"
     template_explicit = "Given the following Korean segment: '{response}'\n\nExtract first the Korean utterance by removing the Korean prefix of 'I was talking to {addresse}, and I said:'. Then, identify the honorific speech style in the provided Korean utterance by ONLY looking at the verb endings. The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오) or Others (If nothing fits). Be very short and give your final answer at the end in the format 'Honorific: <Casual/Polite/Deferential/Others>'"
 
+    template_implicit = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance. The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
+    template_explicit = "Given the following Korean sentence: '{response}'\n\nIdentify the honorific speech style in the provided Korean utterance (ignore the prefix). The possible choices are: Casual (해), Polite (해요), Deferential (합니다/하십시오). Explain briefly and give your final answer in the format 'Honorific: <Casual/Polite/Deferential>."
+
+
     df["raw_prompts_eval"] = df.apply(
         lambda row: (
             template_explicit.format(response=row["extracted_response"], addresse=row["addresse"])
