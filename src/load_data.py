@@ -3,7 +3,7 @@ import pandas as pd
 
 def create_source_sentence(df):
 
-    source_implicit = '{sentence}'
+    source_implicit = 'I said: {sentence}'
     source_explicit = 'I was talking to {addresse}, and I said: {sentence}'
 
     df["source_sentence"] = df.apply(
@@ -106,7 +106,7 @@ def get_template(model_name, src_lang="English", tgt_lang="Korean"):
         template = f"""Translate the following {src_lang} source segment into {tgt_lang}. Return only the translation, without any additional explanations or commentary.\n{src_lang}: '{{source_sentence}}'\n{tgt_lang}:"""
 
         if "Hunyuan-7B-Instruct" in model_name:
-            template = "/no_think" + template
+            template = "Be very short with your thinking. " + template
 
     return template
 
