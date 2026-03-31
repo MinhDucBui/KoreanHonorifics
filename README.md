@@ -1,4 +1,4 @@
-<h1 align="center">Do LLMs Respect Korean Honorifics?</h1>
+<h1 align="center">Investigating the Automatic Translation of Korean Honorifics</h1>
 <h3 align="center"><em>Evaluating Speech Level Awareness in English-to-Korean Machine Translation</em></h3>
 
 
