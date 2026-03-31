@@ -36,7 +36,6 @@ The **Korean Honorifics Dataset** consists of 1,500 English sentences paired wit
 | professor at university | Explicit | Deferential (합니다) |
 | close friend | Explicit | Casual (해) |
 | stranger on the street | Explicit | Polite (해요) |
-| *(no context)* | Implicit | Annotator majority vote |
 
 ### Access to Dataset
 
