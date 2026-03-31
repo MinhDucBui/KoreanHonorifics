@@ -19,7 +19,7 @@ When compared with human preferences, MTLMs diverge more strongly, exhibiting a 
 
 ### Overview
 
-The **Korean Honorifics Dataset** consists of 1,500 English sentences paired with addressee context — each annotated by multiple human annotators for the appropriate Korean honorific speech style. The dataset covers both **explicit** (addressee stated in context) and **implicit** (no addressee context) conditions, across 30 real-world social scenarios.
+The **Korean Honorifics Dataset** consists of 1,500 English sentences paired with addressee context. A subset was annotated by multiple human annotators for the appropriate Korean honorific speech style. The dataset covers both **explicit** (addressee stated in context) and **implicit** (no addressee context) conditions, across 30 real-world social scenarios.
 
 ### Honorific Speech Levels
 
