@@ -1,0 +1,7 @@
+torch
+transformers
+pandas
+tqdm
+openai
+googletrans==4.0.0rc1
+unbabel-comet
